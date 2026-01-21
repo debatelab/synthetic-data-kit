@@ -1,0 +1,63 @@
+# Custom configuration for tool use Chain of Thought enhancement
+llm:
+  # Provider selection: "vllm" or "api-endpoint"
+  provider: "vllm"
+
+vllm:
+  api_base: "http://localhost:8000/v1"
+  model: "unsloth/Meta-Llama-3.3-70B-Instruct"
+  max_retries: 3
+  retry_delay: 1.0
+
+# API endpoint configuration
+api-endpoint:
+  api_base: null # Optional base URL for API endpoint (null for default API)
+  api_key: null # API key for API endpoint or compatible service (can use env var instead)
+  model: "kit.gpt-oss-120b" # Default model to use
+  max_retries: 3 # Number of retries for API calls
+  retry_delay: 1.0 # Initial delay between retries (seconds)
+  sleep_time: 0.5 # Small delay in seconds between batches to avoid rate limits
+
+generation:
+  temperature: 0.3 # Lower temperature for more consistent reasoning
+  top_p: 0.95
+  max_tokens: 8192 # Allow for longer outputs to accommodate CoT reasoning
+
+# The most important part - our custom Chain of Thought prompt
+prompts:
+  cot_enhancement: |
+    You are an expert editor of synthetic argumentation conversations from the `DebateLabKIT/argunauts-thinking` dataset.
+    Your job is to improve alignment between user instructions and assistant behaviour while preserving the logical content of the assistant answers.
+
+    You will receive one or more conversations serialized as JSON.
+    Each conversation is an array of message objects with keys such as `role`, `content`, `name`, `thinking`, `tool_calls`, and `tools`.
+
+    STRICT INVARIANTS (MUST FOLLOW):
+    - Do NOT add or remove any messages.
+    - Do NOT add or remove any keys in any message.
+    - Do NOT change any `role`, `name`, `tool_calls`, or `tools` field.
+    - For all messages with `role: "assistant"`, you MUST treat the `content` field as read-only text.
+      Do not modify a single character of any `assistant.content` value.
+    - You MAY rewrite the `thinking` field of assistant messages.
+    - For `system` and `tool` messages, you should leave all fields unchanged.
+
+    EXPECTED TRANSFORMATION –  – Thinking-focused alignment with minimal prompt edits:
+    1. Prefer to keep `user` message `content` as close as possible to the original.
+       - You MAY make small clarifications, fix minor phrasing, or add short phrases when necessary so that the assistant's behaviour is not wildly surprising.
+       - Avoid substantially lengthening or radically rephrasing user messages; the spirit and granularity of the original instruction should remain recognizable.
+    2. Use the `thinking` field of assistant messages as the main place to realign the conversation.
+       - Rewrite `assistant.thinking` to give a realistic chain of thought that starts from the (mostly unchanged) user prompt and leads to the existing assistant `content` and, possibly, tool calls.
+       - You may restructure or shorten overlong step lists, but the reasoning should still explain why such a rich, multi-step response is appropriate for the given user request.
+       - Refer to concrete actions the assistant performs in its `content`, such as reconstructing arguments in Argdown, formalizing premises and conclusions, using rhetorical analysis tools, and embedding YAML annotations.
+
+    Additional guidelines:
+    - Preserve the argumentative content, Argdown structures, and logical relationships expressed in the assistant `content` exactly as given.
+    - Maintain the overall style of the dataset: precise, analytic, and focused on argument mapping and applied logic.
+
+    Output requirements:
+    - Return the full conversations in the SAME JSON structure you received, with the same number of conversations and messages.
+    - Only the `user.content` fields (minimally, as described above) and `assistant.thinking` fields may change.
+    - Do NOT add any commentary, explanations, or markdown outside of the JSON itself.
+
+    BEGIN WORK NOW. Rewrite the conversation(s) according to these rules:
+    {conversations}
