@@ -26,6 +26,18 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Load local .env if present so API_ENDPOINT_KEY, OPENAI_BASE_URL, HF_TOKEN, etc. are available
+ENV_FILE="${SCRIPT_DIR}/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  echo "[env] Loading environment from $ENV_FILE"
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+else
+  echo "[env] No .env file found at $ENV_FILE (skipping)"
+fi
+
 if [[ "$DEBUG" -eq 1 ]]; then
   DATA_DIR="${SCRIPT_DIR}/data_debug"
   set -x
@@ -56,6 +68,8 @@ TRAIN_N=15000
 EVAL_N=600
 
 if [[ "$DEBUG" -eq 1 ]]; then
+  # In debug mode, only operate on the train split with a tiny sample size.
+  SPLITS=("train")
   TRAIN_N=5
   EVAL_N=5
 fi
@@ -108,14 +122,25 @@ for config in "${CONFIGS[@]}"; do
     fi
 
     echo "[prepare] Preparing subset for config=$config, split=$split (n=$n)"
-    python "${SCRIPT_DIR}/prepare_subset.py" \
-      --dataset "$BASE_DATASET_ID" \
-      --config-name "$config" \
-      --split "$split" \
-      --n "$n" \
-      --output "$raw_out" || {
-        echo "[prepare] Warning: failed to prepare subset for $config/$split" >&2
-      }
+    if [[ "$DEBUG" -eq 1 ]]; then
+      # In debug mode, fail fast on any error.
+      python "${SCRIPT_DIR}/prepare_subset.py" \
+        --dataset "$BASE_DATASET_ID" \
+        --config-name "$config" \
+        --split "$split" \
+        --n "$n" \
+        --output "$raw_out"
+    else
+      # In full runs, report but do not abort on a single failing subset.
+      python "${SCRIPT_DIR}/prepare_subset.py" \
+        --dataset "$BASE_DATASET_ID" \
+        --config-name "$config" \
+        --split "$split" \
+        --n "$n" \
+        --output "$raw_out" || {
+          echo "[prepare] Warning: failed to prepare subset for $config/$split" >&2
+        }
+    fi
   done
 done
 
@@ -210,13 +235,23 @@ for config in "${CONFIGS[@]}"; do
     fi
 
     echo "[merge] Merging aligned groups for config=$config, split=$split"
-    python "${SCRIPT_DIR}/merge_per_config.py" \
-      --config "$config" \
-      --split "$split" \
-      --input-root "$ALIGNED_DIR" \
-      --output "$merged_out" || {
-        echo "[merge] Warning: merge failed for $config/$split" >&2
-      }
+    if [[ "$DEBUG" -eq 1 ]]; then
+      # In debug mode, fail fast on merge errors.
+      python "${SCRIPT_DIR}/merge_per_config.py" \
+        --config "$config" \
+        --split "$split" \
+        --input-root "$ALIGNED_DIR" \
+        --output "$merged_out"
+    else
+      # In full runs, report but do not abort on a single failing merge.
+      python "${SCRIPT_DIR}/merge_per_config.py" \
+        --config "$config" \
+        --split "$split" \
+        --input-root "$ALIGNED_DIR" \
+        --output "$merged_out" || {
+          echo "[merge] Warning: merge failed for $config/$split" >&2
+        }
+    fi
   done
 done
 
