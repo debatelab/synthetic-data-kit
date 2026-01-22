@@ -48,6 +48,16 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--cleaned-dir",
+        type=str,
+        default="data/cleaned",
+        help=(
+            "Directory containing cleaned per-config split JSON files. If a "
+            "cleaned file for a given (config, split) exists here, it is "
+            "preferred over the merged version when publishing."
+        ),
+    )
+    parser.add_argument(
         "--public",
         action="store_false",
         dest="private",
@@ -72,16 +82,25 @@ def main() -> None:
     args = parse_args()
 
     merged_dir = Path(args.merged_dir)
+    cleaned_dir = Path(args.cleaned_dir)
     repo_id = f"{args.org}/{args.repo_name}"
 
     for config in args.configs:
         dd = DatasetDict()
         for split in args.splits:
             filename = f"{config}-aligned_{split}.json"
-            path = merged_dir / filename
-            if not path.exists():
+
+            cleaned_path = cleaned_dir / filename
+            merged_path = merged_dir / filename
+
+            if cleaned_path.exists():
+                path = cleaned_path
+            elif merged_path.exists():
+                path = merged_path
+            else:
                 # It is valid for some splits to be missing
                 continue
+
             records = load_split(path)
             dd[split] = Dataset.from_list(records)
 

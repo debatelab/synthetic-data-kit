@@ -191,6 +191,6 @@ python publish_deep_argmap_to_hub.py \
   --configs deepa2-aaac01-thinking deepa2-aaac02-thinking deepa2-aaac03-thinking deepa2-folly-thinking
 ```
 
-The alignment pipeline also runs a structural validator/cleaner after merging that writes `*_cleaned.json` files in `data/merged/` (or `data_debug/merged/` in debug mode). These cleaned files contain only examples whose conversational structure (message count, keys, roles, and metadata fields) exactly matches the original raw subset and should be **preferred as the source of truth for uploading to Hugging Face**.
+The alignment pipeline also runs a structural validator/cleaner after merging that writes cleaned per-config split files into `data/cleaned/` (or `data_debug/cleaned/` in debug mode), mirroring the filenames from `data/merged/`. These cleaned files contain only examples whose conversational structure (message count, keys, roles, and metadata fields) exactly matches the original raw subset and should be **preferred as the source of truth for uploading to Hugging Face**.
 
 This will push one configuration per original config, named `<config>-aligned`, each with its `train` / `validation` / `test` splits containing a mixture of alignment modes and all three models, with each original example transformed exactly once.

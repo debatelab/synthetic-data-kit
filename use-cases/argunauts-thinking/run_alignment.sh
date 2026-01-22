@@ -49,6 +49,7 @@ RAW_DIR="${DATA_DIR}/raw"
 ASSIGNED_DIR="${DATA_DIR}/assigned"
 ALIGNED_DIR="${DATA_DIR}/aligned"
 MERGED_DIR="${DATA_DIR}/merged"
+CLEANED_DIR="${DATA_DIR}/cleaned"
 
 # Base HF dataset identifier for the deep-argmap corpus. Adjust this to the
 # actual dataset repo id you use.
@@ -87,7 +88,7 @@ MODELS=(
   "kit.qwen3-vl-235b-a22b-instruct"
 )
 
-mkdir -p "$RAW_DIR" "$ASSIGNED_DIR" "$ALIGNED_DIR" "$MERGED_DIR"
+mkdir -p "$RAW_DIR" "$ASSIGNED_DIR" "$ALIGNED_DIR" "$MERGED_DIR" "$CLEANED_DIR"
 
 CREATE_EXTRA_ARGS=()
 if [[ "$DEBUG" -eq 1 ]]; then
@@ -258,11 +259,13 @@ for config in "${CONFIGS[@]}"; do
     raw_in="${RAW_DIR}/${config}_${split}_raw.json"
     if [[ -f "$raw_in" ]]; then
       echo "[validate] Checking and cleaning structure for config=$config, split=$split"
+      cleaned_out="${CLEANED_DIR}/${config}-aligned_${split}.json"
       python "${SCRIPT_DIR}/validate_structures.py" \
         --original "$raw_in" \
         --transformed "$merged_out" \
         --strict-ids \
-        --clean
+        --clean \
+        --clean-output "$cleaned_out"
     else
       echo "[validate] WARNING: original raw subset missing for $config/$split, skipping validation/cleaning"
     fi

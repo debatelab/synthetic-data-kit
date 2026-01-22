@@ -32,8 +32,17 @@ def parse_args() -> argparse.Namespace:
         "--clean",
         action="store_true",
         help=(
-            "If set, write a *_cleaned.json file containing only structurally "
-            "valid transformed examples (drop bad ones)."
+            "If set, write a cleaned transformed JSON containing only structurally "
+            "valid examples (drop bad ones)."
+        ),
+    )
+    parser.add_argument(
+        "--clean-output",
+        type=str,
+        default=None,
+        help=(
+            "Optional path for the cleaned transformed JSON. "
+            "If omitted, a *_cleaned.json file is written next to --transformed."
         ),
     )
     return parser.parse_args()
@@ -120,7 +129,13 @@ def validate_structures(
     original_path: Path,
     transformed_path: Path,
     strict_ids: bool = False,
-) -> Tuple[bool, List[str]]:
+) -> Tuple[
+    bool,
+    List[str],
+    Dict[Any, Dict[str, Any]],
+    Dict[Any, Dict[str, Any]],
+    Dict[Any, List[str]],
+]:
     orig_records = load_as_dict(original_path)
     transf_records = load_as_dict(transformed_path)
 
@@ -203,13 +218,16 @@ def main() -> None:
             print(" -", e)
         raise SystemExit(1)
 
-    # Clean mode: drop structurally bad examples and write *_cleaned.json.
+    # Clean mode: drop structurally bad examples and write cleaned JSON.
     # Determine output path.
-    transformed_str = str(transformed_path)
-    if transformed_str.lower().endswith(".json"):
-        cleaned_path = transformed_path.with_name(transformed_path.stem + "_cleaned.json")
+    if args.clean_output:
+        cleaned_path = Path(args.clean_output)
     else:
-        cleaned_path = transformed_path.with_name(transformed_path.name + "_cleaned")
+        transformed_str = str(transformed_path)
+        if transformed_str.lower().endswith(".json"):
+            cleaned_path = transformed_path.with_name(transformed_path.stem + "_cleaned.json")
+        else:
+            cleaned_path = transformed_path.with_name(transformed_path.name + "_cleaned")
 
     orig_ids = set(orig_records.keys())
     transf_ids = set(transf_records.keys())
