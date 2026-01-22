@@ -178,7 +178,7 @@ def get_mode_config_path(cfg: OrchestratorConfig, mode: str) -> Path:
 def choose_sample_size(cfg: OrchestratorConfig, split: str) -> int:
     if cfg.debug:
         return 5
-    return 15000 if split == "train" else 600
+    return 10000 if split == "train" else 600
 
 
 def ensure_raw_subset(
@@ -365,6 +365,9 @@ def run_group_alignment_with_repairs_for_group(
         # semantics.
         for start in range(0, len(pending_ids), batch_size):
             batch_ids = pending_ids[start : start + batch_size]
+            print(
+                f"🔁 Processing batch with items {start}-{start + batch_size} of {len(pending_ids)}."
+            )
 
             repair_input_path = out_dir / f"~{base_name}_repair_input.json"
             # SD-Kit follows the convention <input_basename>_enhanced.json for outputs.
