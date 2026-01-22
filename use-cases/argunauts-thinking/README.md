@@ -132,16 +132,16 @@ Hugging Face authentication:
 
 ### 2. Run the full multi-config alignment pipeline
 
-The upgraded `run_alignment.sh` orchestrates the full pipeline for the deep-argmap configs, including sampling, (mode, model) assignment, Synthetic Data Kit calls, and merging.
+The recommended entrypoint is the Python orchestrator `orchestrate_argunauts.py`, which coordinates sampling, (mode, model) assignment, per-sample repair, Synthetic Data Kit calls, and merging.
 
-So a single:
+From the repository root:
 
 ```bash
 cd use-cases/argunauts-thinking
-bash run_alignment.sh
+python orchestrate_argunauts.py
 ```
 
-will:
+By default this will:
 
 - Generate raw subsets for all 4 configs and 3 splits.
 - Balance assign each example to one of 6 `(mode, model)` combos.
@@ -153,15 +153,17 @@ will:
   - `..._test.json`
   - etc. for each config.
 
-The configs and splits processed are controlled inside `run_alignment.sh` and can be adapted as needed.
+The configs and splits processed are controlled via CLI flags to `orchestrate_argunauts.py` (see `--help`) and can be adapted as needed.
+
+For legacy or shell-only workflows, `run_alignment.sh` is still available but may be deprecated in future versions once the Python orchestrator is fully validated.
 
 #### 2.1 Debug mode (small, verbose run)
 
-For quick end-to-end tests, `run_alignment.sh` supports a debug mode that runs the entire pipeline on a tiny slice of data with more verbose logs:
+For quick end-to-end tests, `orchestrate_argunauts.py` supports a debug mode that runs the entire pipeline on a tiny slice of data with more verbose logs:
 
 ```bash
 cd use-cases/argunauts-thinking
-bash run_alignment.sh --debug
+python orchestrate_argunauts.py --debug
 ```
 
 In debug mode:
