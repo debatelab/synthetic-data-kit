@@ -7,8 +7,8 @@ from datasets import load_dataset
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Prepare a JSON conversations file from the "
-            "DebateLabKIT/argunauts-thinking dataset (or compatible)."
+            "Prepare a JSON conversations file from a Hugging Face dataset "
+            "(e.g. DebateLabKIT/argunauts-thinking or deep-argmap variants)."
         )
     )
     parser.add_argument(
@@ -16,6 +16,15 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="DebateLabKIT/argunauts-thinking",
         help="Hugging Face dataset identifier to load.",
+    )
+    parser.add_argument(
+        "--config-name",
+        type=str,
+        default=None,
+        help=(
+            "Optional dataset configuration name (for multi-config datasets). "
+            "If provided, passed as the 'name' argument to load_dataset."
+        ),
     )
     parser.add_argument(
         "--split",
@@ -70,8 +79,12 @@ def main() -> None:
             raise ValueError("--n must be positive if provided")
         split_expr = f"{args.split}[:{args.n}]"
 
-    print(f"Loading dataset {args.dataset!r}, split {split_expr!r}...")
-    ds = load_dataset(args.dataset, split=split_expr)
+    load_kwargs = {"split": split_expr}
+    if args.config_name is not None:
+        load_kwargs["name"] = args.config_name
+
+    print(f"Loading dataset {args.dataset!r}, config {args.config_name!r}, split {split_expr!r}...")
+    ds = load_dataset(args.dataset, **load_kwargs)
 
     messages_field = args.messages_field
     if messages_field not in ds.column_names:
