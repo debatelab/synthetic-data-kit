@@ -19,7 +19,7 @@ api-endpoint:
   sleep_time: 0.5 # Small delay in seconds between batches to avoid rate limits
 
 generation:
-  temperature: 0.3 # Lower temperature for more consistent reasoning
+  temperature: 0.2 # Lower temperature for more consistent reasoning
   top_p: 0.95
   max_tokens: 8192 # Allow for longer outputs to accommodate CoT reasoning
 
@@ -44,8 +44,9 @@ prompts:
     EXPECTED TRANSFORMATION – Prompt-focused alignment with conservative thinking revision:
     1. Freely rewrite `user` message `content` so that the assistant's existing answers become a natural response derived from internal thinking that complies with the user's request.
        - Make user prompts clearly guide the **internal thinking** by asking, e.g., for multi-step argument reconstruction, Argdown formalization, inline YAML or JSON annotations, and the use of any tools present in `tools` or `tool_calls`, when that is what the assistant already does in its chain of thpught trace.
-       - It is fine to substantially lengthen or rephrase user messages to describe the methodology, steps, and desired level of detail that match the assistant's internal reasoning.
+       - It is fine to substantially lengthen or rephrase user messages to describe the methodology, steps, and desired level of detail that match the assistant's internal reasoning ("In your external reasoning ...")
        - Resolve any plain mistakes or unresolved references to extraneous material in the user message.
+       - Keep the "source text", if included in the `content` field of the user massage, fully intact and verbatim.
     2. Edit and integrate (do NOT replace) the existing `thinking` field of assistant messages so that it:
        - Begins with 1–3 concise sentences where the assistant restates, in its own words, what the user is asking for and what task it needs to perform.
          - Use patterns such as "The user is asking me to...", "The user faces ... and asks me to...", or "The user's goal is to...".
