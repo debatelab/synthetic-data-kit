@@ -42,12 +42,16 @@ prompts:
 
     EXPECTED TRANSFORMATION – Prompt-focused alignment with conservative thinking revision:
     1. Freely rewrite `user` message `content` so that the assistant's existing answers become a natural, explicitly requested response.
-       - Make user prompts clearly ask for multi-step argument reconstruction, Argdown formalization, inline YAML annotations, and the use of any tools present in `tools` or `tool_calls`, when that is what the assistant already does.
-       - It is fine to substantially lengthen or rephrase user messages to describe the methodology, steps, and desired level of detail that match the assistant's behaviour.
-    2. Minimally rewrite the `thinking` field of assistant messages so that it:
-       - Starts from the new, more explicit user instructions.
-       - Lays out a realistic plan or chain of thought that explains how the assistant arrives at its already-fixed `content` and tool calls.
-       - References relevant steps such as understanding the text, reconstructing arguments in Argdown, formalizing premises and conclusions, using rhetorical analysis tools, and integrating YAML annotations, when appropriate.
+       - Make user prompts clearly guide the internal thinking by asking for multi-step argument reconstruction, Argdown formalization, inline YAML annotations, and the use of any tools present in `tools` or `tool_calls`, when that is what the assistant already does.
+       - It is fine to substantially lengthen or rephrase user messages to describe the methodology, steps, and desired level of detail that match the assistant's internal reasoning and final output.
+     2. Minimally rewrite the `thinking` field of assistant messages so that it:
+        - Begins with 1–3 concise sentences where the assistant restates, in its own words, what the user is asking for and what task it needs to perform.
+          - Use patterns such as "The user is asking me to...", "The user faces ... and asks me to...", or "The user's goal is to...".
+          - Keep this restatement short and concrete, not a generic template.
+        - Starts from the new, more explicit user instructions.
+        - Lays out a realistic plan or chain of thought that explains how the assistant arrives at its already-fixed `content` and tool calls.
+        - References relevant steps such as understanding the text, reconstructing arguments in Argdown, formalizing premises and conclusions, using rhetorical analysis tools, and integrating YAML annotations, when appropriate.
+
 
     Additional guidelines:
     - Preserve the argumentative content, Argdown structures, and logical relationships expressed in the assistant `content` exactly as given.
