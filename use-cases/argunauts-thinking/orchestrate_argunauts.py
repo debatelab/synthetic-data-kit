@@ -329,8 +329,14 @@ def run_group_alignment_with_repairs_for_group(
     split: str,
     mode: str,
     model: str,
+    batch_size: int = 64,
 ) -> None:
-    """Align a single (config, split, mode, model) group with bounded repairs."""
+    """Align a single (config, split, mode, model) group with bounded repairs.
+
+    Pending examples are processed in batches of size batch_size within each
+    repair loop iteration to reduce per-call load on the SD-Kit CLI while
+    preserving the overall retry semantics.
+    """
     safe_model = safe_model_name(model)
     assigned_path = cfg.assigned_dir / f"{config_name}_{split}_mode-{mode}_model-{safe_model}.json"
     if not assigned_path.exists():
@@ -353,46 +359,56 @@ def run_group_alignment_with_repairs_for_group(
         if not pending_ids:
             break
 
-        repair_input_path = out_dir / f"~{base_name}_repair_input.json"
-        # SD-Kit follows the convention <input_basename>_enhanced.json for outputs.
-        repair_raw_path = out_dir / f"~{base_name}_repair_input_enhanced.json"
-        repair_clean_path = out_dir / f"~{base_name}_repair_clean.json"
+        # Process the pending IDs in fixed-size batches. We compute pending_ids
+        # once per outer repair iteration so that structurally invalid examples
+        # are only retried in subsequent iterations, matching the original
+        # semantics.
+        for start in range(0, len(pending_ids), batch_size):
+            batch_ids = pending_ids[start : start + batch_size]
 
-        repair_records = build_repair_records(original_records, pending_ids)
-        save_json(repair_input_path, repair_records)
+            repair_input_path = out_dir / f"~{base_name}_repair_input.json"
+            # SD-Kit follows the convention <input_basename>_enhanced.json for outputs.
+            repair_raw_path = out_dir / f"~{base_name}_repair_input_enhanced.json"
+            repair_clean_path = out_dir / f"~{base_name}_repair_clean.json"
 
-        # Run SD-Kit on the pending subset; it will create
-        # <base_name>_repair_input_enhanced.json in out_dir.
-        run_sdkit_create_cli(
-            mode_config=mode_config,
-            input_json=repair_input_path,
-            model=model,
-            output_dir=out_dir,
-            debug=cfg.debug,
-        )
+            repair_records = build_repair_records(original_records, batch_ids)
+            save_json(repair_input_path, repair_records)
 
-        if not repair_raw_path.exists():
-            raise RuntimeError(
-                f"Expected SD-Kit to write enhanced output {repair_raw_path} for {repair_input_path}"
+            # Run SD-Kit on the pending subset; it will create
+            # <base_name>_repair_input_enhanced.json in out_dir.
+            run_sdkit_create_cli(
+                mode_config=mode_config,
+                input_json=repair_input_path,
+                model=model,
+                output_dir=out_dir,
+                debug=cfg.debug,
             )
 
-        run_validate_structures_clean_cli(
-            original_path=repair_input_path,
-            transformed_path=repair_raw_path,
-            cleaned_output_path=repair_clean_path,
-            strict_ids=True,
-        )
+            if not repair_raw_path.exists():
+                raise RuntimeError(
+                    f"Expected SD-Kit to write enhanced output {repair_raw_path} for {repair_input_path}"
+                )
 
-        repair_clean_records = load_json(repair_clean_path)
-        merged_records = merge_clean_repair_into_canonical(canonical_records, repair_clean_records)
-        save_json(canonical_path, merged_records)
+            run_validate_structures_clean_cli(
+                original_path=repair_input_path,
+                transformed_path=repair_raw_path,
+                cleaned_output_path=repair_clean_path,
+                strict_ids=True,
+            )
 
-        # Best-effort cleanup of per-iteration intermediates
-        for tmp_path in (repair_input_path, repair_raw_path, repair_clean_path):
-            try:
-                tmp_path.unlink()
-            except FileNotFoundError:
-                pass
+            repair_clean_records = load_json(repair_clean_path)
+            canonical_records = merge_clean_repair_into_canonical(
+                canonical_records,
+                repair_clean_records,
+            )
+            save_json(canonical_path, canonical_records)
+
+            # Best-effort cleanup of per-batch intermediates
+            for tmp_path in (repair_input_path, repair_raw_path, repair_clean_path):
+                try:
+                    tmp_path.unlink()
+                except FileNotFoundError:
+                    pass
 
 
 def run_group_alignment_with_repairs(
