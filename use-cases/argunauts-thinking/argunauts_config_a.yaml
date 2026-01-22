@@ -1,7 +1,7 @@
 # Custom configuration for tool use Chain of Thought enhancement
 llm:
   # Provider selection: "vllm" or "api-endpoint"
-  provider: "vllm"
+  provider: "api-endpoint"
 
 vllm:
   api_base: "http://localhost:8000/v1"
