@@ -38,35 +38,28 @@ prompts:
     - Do NOT change any `role`, `name`, `tool_calls`, or `tools` field.
     - For all messages with `role: "assistant"`, you MUST treat the `content` field as read-only text.
       Do not modify a single character of any `assistant.content` value.
-    - You MAY rewrite the `thinking` field of assistant messages.
+    - You MAY rewrite the `content` field of user messages.
     - For `system` and `tool` messages, you should leave all fields unchanged.
 
-    EXPECTED TRANSFORMATION –  – Thinking-focused alignment with minimal prompt edits:
+    EXPECTED TRANSFORMATION – Thinking-focused alignment with minimal prompt edits:
     1. Prefer to keep `user` message `content` as close as possible to the original.
-       - You MAY make small clarifications, fix minor phrasing, or add short phrases when necessary so that the assistant's behaviour is not wildly surprising.
+       - You MAY make small clarifications, fix minor phrasing, or, when necessary, add short phrases with extra hints.
        - Avoid substantially lengthening or radically rephrasing user messages; the spirit and granularity of the original instruction should remain recognizable.
-    2. Use the `thinking` field of assistant messages as the main place to realign the conversation.
-       - Rewrite `assistant.thinking` to give a realistic chain of thought that:
-         - Begins with 1–3 concise sentences restating, in your own words, what the user is asking for and what outcome they want.
-           - Use formulations such as "The user is asking me to...", "The user faces ... and asks me to...", or "The user's goal is to...".
-           - Ground this restatement in the (mostly unchanged) user prompt and do not introduce new tasks or goals that the user did not ask for.
-         - Then develops a rich explanation of how the assistant arrives at its already-fixed `content` and any tool calls.
-           - Start from the user’s request and outline a plausible approach (e.g. analysing the text, extracting propositions, reconstructing arguments, running rhetorical tools, adding YAML annotations), but this outline does not have to be an exhaustive numbered checklist.
-           - Explicitly refer to concrete actions that appear in the assistant’s `content`, such as:
-             - reconstructing arguments in Argdown (premise–conclusion structures, labels, inference rules),
-             - formalizing premises and conclusions in Syntax.LATEX or similar symbolic notation,
-             - using rhetorical analysis tools (for example `rhetorical_analysis_multi`) on specific propositions,
-             - embedding tool outputs (e.g. tone, persuasion scores, cognitive complexity) as inline YAML annotations.
-       - The chain of thought does not need to be strictly linear.
-         - It may include realistic backtracking, trying alternative approaches, and short “taking stock” moments, such as:
-           - "Wait, am I really capturing the user’s focus on rhetorical style here?"
-           - "Let me reconsider whether this argument structure matches the narrative flow of the text."
-           - "Now that I have tried plan A (purely formal reconstruction), I will instead follow the text paragraph by paragraph to get a better result."
-         - These non-linear moves should remain coherent, build on each other, and clearly move towards the existing assistant `content` and tool calls.
-         - You may revise or refine your initial plan inside the `thinking` (e.g. adjusting how you structure the Argdown reconstruction or when you call tools), but the overall trajectory must still be traceable from the user’s request to the final answer.
-       - You may restructure or shorten overlong step lists from the original `thinking`.
-         - Replace overly mechanical "Step 1–16" plans with more natural, higher-level planning plus occasional reflections, as long as the reasoning still justifies why a detailed, multi-step answer is appropriate.
-         - Keep meta-cognitive commentary (e.g. backtracking notes, plan updates) purposeful and relatively brief; avoid turning the chain of thought into pure chatter.
+    2. Freely edit and revise any existing and non-empty `thinking` field of assistant messages so that it:
+        - Begins with 1–3 concise sentences restating, in the assistant's own words, what the user is asking for and what outcome they want.
+            - Use formulations such as "The user is asking me to...", "The user faces ... and asks me to...", or "The user's goal is to...".
+            - Ground this restatement in the (mostly unchanged) user prompt and do not introduce new tasks or goals unrelated to what the user did ask for.
+        - Reuses the original `thinking` content as raw material: preserve all substantive reasoning steps while you reorganize and rearrange.
+        - Starts from the user’s request and outlines a plausible approach to tackle it (e.g. analysing the text, extracting propositions, reconstructing arguments, running rhetorical tools, adding YAML annotations).
+            - You may shorten overlong step lists from the original `thinking` field.
+            - Replace overly mechanical plans with more natural, higher-level planning, as long as the reasoning still justifies why a detailed, multi-step answer is appropriate.
+        - Unfolds a rich, intricate, and coherent chain of thought following the prelimary plan outlined before.
+            - Use first-person present tense consistently.
+            - You may mix in occasional reflections, like realistic backtracking, trying alternative approaches, and short “taking stock” moments, such as: "Wait, am I really capturing the user’s focus on rhetorical style here?", "Let me reconsider whether this argument structure matches the narrative flow of the text.", "Now that I have tried plan A (purely formal reconstruction), I will instead follow the text paragraph by paragraph to get a better result."
+            - You may revise or refine the initially presented plan as the `thinking` trace unfolds (e.g. add extra Argdown reconstruction steps, or postpone your tool calls), but the overall trajectory must still be traceable from the user’s request to the final answer.
+            - Keep meta-cognitive commentary (e.g. backtracking notes, plan updates) purposeful and relatively brief; avoid turning the chain of thought into pure chatter.
+            - Any non-linear moves should remain coherent, build on each other, and clearly move towards the existing assistant `content` and tool calls.
+        - Leads naturally to the already-fixed `content` (= final answer), and tool calls (if any).
 
 
     Additional guidelines:

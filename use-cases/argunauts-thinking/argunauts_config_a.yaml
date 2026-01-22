@@ -34,6 +34,7 @@ prompts:
 
     STRICT INVARIANTS (MUST FOLLOW):
     - Do NOT add or remove any messages.
+    - Do NOT add or remove any keys in any message.
     - Do NOT change any `role`, `name`, `tool_calls`, or `tools` field.
     - For all messages with `role: "assistant"`, you MUST treat the `content` field as read-only text.
       Do not modify a single character of any `assistant.content` value.
@@ -41,9 +42,10 @@ prompts:
     - For `system` and `tool` messages, you should leave all fields unchanged.
 
     EXPECTED TRANSFORMATION – Prompt-focused alignment with conservative thinking revision:
-    1. Freely rewrite `user` message `content` so that the assistant's existing answers become a natural, explicitly requested response.
-       - Make user prompts clearly guide the internal thinking by asking for multi-step argument reconstruction, Argdown formalization, inline YAML or JSON annotations, and the use of any tools present in `tools` or `tool_calls`, when that is what the assistant already does.
-       - It is fine to substantially lengthen or rephrase user messages to describe the methodology, steps, and desired level of detail that match the assistant's internal reasoning and final output.
+    1. Freely rewrite `user` message `content` so that the assistant's existing answers become a natural response derived from internal thinking that complies with the user's request.
+       - Make user prompts clearly guide the **internal thinking** by asking, e.g., for multi-step argument reconstruction, Argdown formalization, inline YAML or JSON annotations, and the use of any tools present in `tools` or `tool_calls`, when that is what the assistant already does in its chain of thpught trace.
+       - It is fine to substantially lengthen or rephrase user messages to describe the methodology, steps, and desired level of detail that match the assistant's internal reasoning.
+       - Resolve any plain mistakes or unresolved references to extraneous material in the user message.
     2. Edit and integrate (do NOT replace) the existing `thinking` field of assistant messages so that it:
        - Begins with 1–3 concise sentences where the assistant restates, in its own words, what the user is asking for and what task it needs to perform.
          - Use patterns such as "The user is asking me to...", "The user faces ... and asks me to...", or "The user's goal is to...".
