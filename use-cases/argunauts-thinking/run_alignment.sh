@@ -83,7 +83,7 @@ MODE_CONFIG_B="${SCRIPT_DIR}/argunauts_config_b.yaml"
 # are not tied to the config files.
 MODELS=(
   "kit.gpt-oss-120b"
-  "kit.mixtral-8x22b-instruct"
+  #"kit.mixtral-8x22b-instruct"
   "kit.qwen3-vl-235b-a22b-instruct"
 )
 
@@ -250,9 +250,25 @@ for config in "${CONFIGS[@]}"; do
         --input-root "$ALIGNED_DIR" \
         --output "$merged_out" || {
           echo "[merge] Warning: merge failed for $config/$split" >&2
+          continue
         }
+    fi
+
+    # 5) Validate and clean conversation structure for this (config, split)
+    raw_in="${RAW_DIR}/${config}_${split}_raw.json"
+    if [[ -f "$raw_in" ]]; then
+      echo "[validate] Checking and cleaning structure for config=$config, split=$split"
+      python "${SCRIPT_DIR}/validate_structures.py" \
+        --original "$raw_in" \
+        --transformed "$merged_out" \
+        --strict-ids \
+        --clean
+    else
+      echo "[validate] WARNING: original raw subset missing for $config/$split, skipping validation/cleaning"
     fi
   done
 done
 
-echo "All steps completed. Merged aligned splits are in: $MERGED_DIR"
+echo "All steps completed. Merged aligned splits and validation results are in: $MERGED_DIR"
+
+
