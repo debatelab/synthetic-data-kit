@@ -88,7 +88,7 @@ From the repository root:
 
 ```bash
 pip install --upgrade pip
-pip install -e . huggingface_hub
+pip install -e .
 ```
 
 This installs:
