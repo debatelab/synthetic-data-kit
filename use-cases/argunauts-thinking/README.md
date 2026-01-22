@@ -122,20 +122,13 @@ OPENAI_BASE_URL=https://api.llama.com/v1  # if you rely on an API endpoint provi
 HF_TOKEN=hf_...
 ```
 
+Place this `.env` file directly in `use-cases/argunauts-thinking`. The `run_alignment.sh` script will automatically load it on startup (exporting the variables so that `synthetic-data-kit` and the publish script can see them). There is no need to `source .env` manually.
+
 Hugging Face authentication:
 
 - The `datasets` / `huggingface_hub` libraries will automatically pick up `HF_TOKEN` from the environment when pushing to the Hub.
 - Alternatively, you can run `huggingface-cli login` once and omit `HF_TOKEN` from `.env`.
 - The publish script defaults to creating **private** repos; pass `--public` to make them public.
-
-To load the `.env` before running the pipeline:
-
-```bash
-# From use-cases/argunauts-thinking
-set -a
-source .env
-set +a
-```
 
 ### 2. Run the full multi-config alignment pipeline
 
@@ -174,7 +167,8 @@ bash run_alignment.sh --debug
 In debug mode:
 
 - **Sampling**:
-  - Uses `n = 5` examples for every `(config, split)` instead of `15000 / 600 / 600`.
+  - Only the `train` split is processed.
+  - Uses `n = 5` examples per `(config, train)` instead of `15000`.
 - **Isolation**:
   - All intermediate and final files are written under `data_debug/` instead of `data/`, e.g.:
     - `data_debug/raw/...`
