@@ -8,6 +8,7 @@ __pycache__
 .env.example
 .DS_Store
 data/\ndata/\n*.pdf
+use-cases/argunauts-thinking/data*
 .venv-ci/
 data/
 example_output
