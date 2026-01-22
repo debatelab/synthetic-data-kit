@@ -41,6 +41,12 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help=("Optional seed for rg."),
+    )
+    parser.add_argument(
         "--messages-field",
         type=str,
         default="messages",
@@ -85,6 +91,7 @@ def main() -> None:
 
     print(f"Loading dataset {args.dataset!r}, config {args.config_name!r}, split {split_expr!r}...")
     ds = load_dataset(args.dataset, **load_kwargs)
+    ds = ds.shuffle(seed=args.seed)
 
     messages_field = args.messages_field
     if messages_field not in ds.column_names:
