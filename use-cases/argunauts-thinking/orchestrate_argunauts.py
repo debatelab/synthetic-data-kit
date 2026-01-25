@@ -389,7 +389,7 @@ def run_group_alignment_with_repairs_for_group(
 
             if not repair_raw_path.exists():
                 print(
-                    f"[WARN] SD-Kit did not write enhanced output "
+                    f"⚠️ [WARN] SD-Kit did not write enhanced output "
                     f"{repair_raw_path} for {repair_input_path}. "
                     f"Skipping this batch in this repair loop."
                 )
