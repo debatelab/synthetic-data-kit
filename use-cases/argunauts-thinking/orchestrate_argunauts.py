@@ -388,9 +388,14 @@ def run_group_alignment_with_repairs_for_group(
             )
 
             if not repair_raw_path.exists():
-                raise RuntimeError(
-                    f"Expected SD-Kit to write enhanced output {repair_raw_path} for {repair_input_path}"
+                print(
+                    f"[WARN] SD-Kit did not write enhanced output "
+                    f"{repair_raw_path} for {repair_input_path}. "
+                    f"Skipping this batch in this repair loop."
                 )
+                # Nothing merged; these example_ids remain pending and may be retried
+                # in a later outer repair iteration.
+                continue
 
             run_validate_structures_clean_cli(
                 original_path=repair_input_path,
