@@ -201,6 +201,51 @@ python publish_deep_argmap_to_hub.py \
   --configs deepa2-aaac01-thinking deepa2-aaac02-thinking deepa2-aaac03-thinking deepa2-folly-thinking
 ```
 
+### 3.1 Optional: Repair tool messages before publishing
+
+In rare cases, some aligned conversations may contain corrupted `tool` messages
+whose `content` field is no longer valid JSON. This can cause downstream
+preprocessors that do `json.loads` on `tool` message content to fail.
+
+To repair these cases, we provide a small utility that uses the original raw
+deep-argmap subsets as a reference.
+
+From `use-cases/argunauts-thinking` you can run:
+
+```bash
+python repair_tool_messages.py
+```
+
+This script:
+
+- iterates over all `(config, split)` pairs where both a raw subset
+  (`data/raw/deepa2-*-thinking_*_raw.json`) and a cleaned aligned file
+  (`data/cleaned/deepa2-*-thinking-aligned_*.json`) exist;
+- for each example with a matching `example_id`, checks every `role == "tool"`
+  message;
+- if the cleaned tool message `content` is not valid JSON but the raw tool
+  message `content` is, copies the raw content (and tool name) into the
+  cleaned record;
+- if a tool message cannot be repaired (both raw and cleaned contents are
+  non-JSON, or the conversation lengths differ), skips that example.
+
+Repaired files are written to `data/repaired/` and mirror the filenames from
+`data/cleaned/`, for example:
+
+- `data/repaired/deepa2-aaac01-thinking-aligned_train.json`
+- `data/repaired/deepa2-aaac02-thinking-aligned_validation.json`
+
+You can then point the publish script at the repaired directory by passing
+`--cleaned-dir data/repaired`:
+
+```bash
+python publish_deep_argmap_to_hub.py \
+  --org YOUR_ORG \
+  --repo-name deep-argmap-synthetic-aligned \
+  --configs deepa2-aaac01-thinking deepa2-aaac02-thinking deepa2-aaac03-thinking deepa2-folly-thinking \
+  --cleaned-dir data/repaired
+```
+
 By default, the published dataset will expose the conversation messages under a `messages` column, matching the original `argunauts-thinking` schema. Internally, all intermediate JSON files use a `conversations` field for the list of messages; you can override the public column name with `--messages-field` if needed.
 
 For example, to keep the uploaded column name as `conversations` instead of `messages`, you can run:
