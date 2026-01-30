@@ -16,8 +16,8 @@ IN SFT training, that undermines the  ability of the SFT-trained model to respon
 
 We create aligned variants of the `DebateLabKIT/argunauts-thinking` dataset by revising conversations so that user instructions and assistant answers are **mutually predictable**:
 
-- If you see the user message, it should be reasonable to expect something like the assistants plan / Argdown reconstruction.
-- If you see the assistants response, it should be easy to reconstruct a user prompt that justifies that level of detail.
+- If you see the user message, it should be reasonable to expect something like the assistant's plan / Argdown reconstruction.
+- If you see the assistant's response, it should be easy to reconstruct a user prompt that justifies that level of detail.
 
 Key principles:
 
@@ -27,11 +27,11 @@ Key principles:
 
 We use two complementary alignment modes, implemented as separate configs and run through the existing `cot-enhance` pipeline:
 
-- **Mode A  Prompt-focused alignment (`argunauts_config_a.yaml`)**
+- **Mode A - Prompt-focused alignment (`argunauts_config_a.yaml`)**
   - Freely rewrite `user.content` so that the existing assistant answer (including complex plans and Argdown reconstructions) is a natural, explicitly requested response.
   - Rewrite `assistant.thinking` to give a realistic chain-of-thought from the new user prompt to the fixed assistant answer and tool calls.
 
-- **Mode B  Thinking-focused alignment (`argunauts_config_b.yaml`)**
+- **Mode B - Thinking-focused alignment (`argunauts_config_b.yaml`)**
   - Keep `user.content` as close as possible to the original, only minimally clarifying where needed.
   - Use `assistant.thinking` as the main knob: rewrite it so that a rich, multi-step answer is a plausible consequence of the (mostly unchanged) user prompt.
 
@@ -64,7 +64,7 @@ git clone https://github.com/meta-llama/synthetic-data-kit.git
 cd synthetic-data-kit
 ```
 
-You will run `run_alignment.sh` from `use-cases/argunauts-thinking`, but all Python dependencies are installed from the repository root.
+You will run `orchestrate_argunauts.py` from `use-cases/argunauts-thinking`, but all Python dependencies are installed from the repository root.
 
 #### 1.2 Create and activate a virtual environment
 
@@ -122,13 +122,16 @@ OPENAI_BASE_URL=https://api.llama.com/v1  # if you rely on an API endpoint provi
 HF_TOKEN=hf_...
 ```
 
-Place this `.env` file directly in `use-cases/argunauts-thinking`. The `run_alignment.sh` script will automatically load it on startup (exporting the variables so that `synthetic-data-kit` and the publish script can see them). There is no need to `source .env` manually.
+Place this `.env` file directly in `use-cases/argunauts-thinking`. The `orchestrate_argunauts.py` script will automatically load it on startup (exporting the variables so that `synthetic-data-kit` and the publish script can see them). There is no need to `source .env` manually.
 
 Hugging Face authentication:
 
-- The `datasets` / `huggingface_hub` libraries will automatically pick up `HF_TOKEN` from the environment when pushing to the Hub.
-- Alternatively, you can run `huggingface-cli login` once and omit `HF_TOKEN` from `.env`.
+- `HF_TOKEN` is a personal access token (starts with `hf_`) that must have write access to the target org/user on the Hub.
+- The `datasets` / `huggingface_hub` libraries **do not take the token as an argument**; they read it from the process environment (via `HF_TOKEN` or a cached login) whenever `push_to_hub` or other API calls are used.
+- When you run `orchestrate_argunauts.py`, it loads `.env` via `python-dotenv`, so `HF_TOKEN` in that file becomes available to any Hugging Face calls made inside the pipeline (for example, when downloading the base `DebateLabKIT/argunauts-thinking` dataset).
+- The publishing step in section 3 is a separate Python process. Before running `python publish_deep_argmap_to_hub.py`, make sure your shell environment has a valid token, either by exporting `HF_TOKEN` (for example, `export HF_TOKEN=hf_...` or `source .env`) or by logging in once with `huggingface-cli login`.
 - The publish script defaults to creating **private** repos; pass `--public` to make them public.
+
 
 ### 2. Run the full multi-config alignment pipeline
 
@@ -144,7 +147,7 @@ python orchestrate_argunauts.py
 By default this will:
 
 - Generate raw subsets for all 4 configs and 3 splits.
-- Balance assign each example to one of 6 `(mode, model)` combos.
+- Balance assign each example to one of the `(mode, model)` combinations.
 - Run SD-Kit for all groups (idempotently).
 - Merge back to:
 
@@ -154,8 +157,6 @@ By default this will:
   - etc. for each config.
 
 The configs and splits processed are controlled via CLI flags to `orchestrate_argunauts.py` (see `--help`) and can be adapted as needed.
-
-For legacy or shell-only workflows, `run_alignment.sh` is still available but may be deprecated in future versions once the Python orchestrator is fully validated.
 
 #### 2.1 Debug mode (small, verbose run)
 
@@ -170,7 +171,7 @@ In debug mode:
 
 - **Sampling**:
   - Only the `train` split is processed.
-  - Uses `n = 5` examples per `(config, train)` instead of `15000`.
+  - Uses `n = 5` examples per `(config, train)` instead of `10000`.
 - **Isolation**:
   - All intermediate and final files are written under `data_debug/` instead of `data/`, e.g.:
     - `data_debug/raw/...`
@@ -184,13 +185,32 @@ This mode is useful to quickly sanity-check configuration changes or prompt twea
 
 ### 3. Publish to Hugging Face (multi-config dataset)
 
-Once `run_alignment.sh` has finished, you can publish the merged per-config splits to Hugging Face with:
+Once `orchestrate_argunauts.py` has finished, you can publish the merged per-config splits to Hugging Face with:
+
+```bash
+# Option 1: export token in your shell
+export HF_TOKEN=hf_...
+
+# Option 2: reuse the .env file from this use case
+cd use-cases/argunauts-thinking
+source .env
+
+python publish_deep_argmap_to_hub.py \
+  --org YOUR_ORG \
+  --repo-name deep-argmap-synthetic-aligned \
+  --configs deepa2-aaac01-thinking deepa2-aaac02-thinking deepa2-aaac03-thinking deepa2-folly-thinking
+```
+
+By default, the published dataset will expose the conversation messages under a `messages` column, matching the original `argunauts-thinking` schema. Internally, all intermediate JSON files use a `conversations` field for the list of messages; you can override the public column name with `--messages-field` if needed.
+
+For example, to keep the uploaded column name as `conversations` instead of `messages`, you can run:
 
 ```bash
 python publish_deep_argmap_to_hub.py \
   --org YOUR_ORG \
   --repo-name deep-argmap-synthetic-aligned \
-  --configs deepa2-aaac01-thinking deepa2-aaac02-thinking deepa2-aaac03-thinking deepa2-folly-thinking
+  --configs deepa2-aaac01-thinking deepa2-aaac02-thinking deepa2-aaac03-thinking deepa2-folly-thinking \
+  --messages-field conversations
 ```
 
 The alignment pipeline also runs a structural validator/cleaner after merging that writes cleaned per-config split files into `data/cleaned/` (or `data_debug/cleaned/` in debug mode), mirroring the filenames from `data/merged/`. These cleaned files contain only examples whose conversational structure (message count, keys, roles, and metadata fields) exactly matches the original raw subset and should be **preferred as the source of truth for uploading to Hugging Face**.
