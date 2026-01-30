@@ -329,7 +329,7 @@ def run_group_alignment_with_repairs_for_group(
     split: str,
     mode: str,
     model: str,
-    batch_size: int = 64,
+    batch_size: int = 32,
 ) -> None:
     """Align a single (config, split, mode, model) group with bounded repairs.
 
