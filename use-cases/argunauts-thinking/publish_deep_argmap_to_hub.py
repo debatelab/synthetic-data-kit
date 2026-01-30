@@ -58,6 +58,16 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--messages-field",
+        type=str,
+        default="messages",
+        help=(
+            "Name of the column to use for the list of messages in the "
+            "uploaded dataset. Internal files use 'conversations'; this "
+            "flag controls the public column name (default: 'messages')."
+        ),
+    )
+    parser.add_argument(
         "--public",
         action="store_false",
         dest="private",
@@ -84,6 +94,7 @@ def main() -> None:
     merged_dir = Path(args.merged_dir)
     cleaned_dir = Path(args.cleaned_dir)
     repo_id = f"{args.org}/{args.repo_name}"
+    messages_field = args.messages_field
 
     for config in args.configs:
         dd = DatasetDict()
@@ -102,6 +113,12 @@ def main() -> None:
                 continue
 
             records = load_split(path)
+            # Normalize the messages column name for the uploaded dataset.
+            # Internal files use 'conversations' for the list of messages.
+            if messages_field != "conversations":
+                for rec in records:
+                    if messages_field not in rec and "conversations" in rec:
+                        rec[messages_field] = rec.pop("conversations")
             dd[split] = Dataset.from_list(records)
 
         if not dd:
